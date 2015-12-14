@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<script src="wad.js"></script>
+<script src="MIDIFile.js"></script>
+<script type="text/javascript">
+    var myAudioContext = null;
+    var SPEED = 1.0;
+
+    var EVENTS = {
+        NOTE: 0x8,
+        NOTE_OFF:0x8,
+        NOTE_ON: 0x9
+    };
+
+    var SCALE = initScale();
+    function initScale() {
+        var SCALE = {};
+        for (var i = 1; i < 100; i++) {
+            SCALE[i] = Math.pow(2, ((i - 69) / 12.0)) * 440;
+        }
+        console.log("calculating a scale");
+        return SCALE;
+    }
+
+
+    setupAudio();
+    var piano = new Wad({
+        source : 'square',
+        env : {
+            attack : .01,
+            decay : .005,
+            sustain : .2,
+            hold : .015,
+            release : .3
+        },
+        filter : {
+            type : 'lowpass',
+            frequency : 1200,
+            q : 8.5,
+            env : {
+                attack : .2,
+                frequency : 600
+            }
+        }
+    });
+
+    var flute = new Wad({
+        source : 'square',
+        env : {
+            attack : .015,
+            decay : .002,
+            sustain : .3,
+            hold : 0.2,
+            release : .6
+        },
+        filter : {
+            type : 'lowpass',
+            frequency : 600,
+            q : 7,
+            env : {
+                attack : .7,
+                frequency : 1600
+            }
+        },
+        vibrato : {
+            attack : 8,
+            speed : 8,
+            magnitude : 100
+        }
+    });
+
+    var flute2 = new Wad({
+        source : 'square',
+        env : {
+            attack : .015,
+            decay : .002,
+            sustain : .2,
+            hold : 0.1,
+            release : .2
+        },
+        filter : {
+            type : 'lowpass',
+            frequency : 600,
+            q : 7,
+            env : {
+                attack : .7,
+                frequency : 1600
+            }
+        },
+        vibrato : {
+            attack : 8,
+            speed : 8,
+            magnitude : 100
+        }
+    });
+
+    var bass = new Wad({
+        source : 'sine',
+        env : {
+            attack : .02,
+            decay : .1,
+            sustain : .9,
+            hold : .4,
+            release : .1
+        }
+    })
+
+    //bass.play({ pitch : 'C2' })
+
+    function makeInstrument(instrument) {
+        return {
+            noteOn: function(note,time) {
+                instrument.play({pitch:SCALE[note]});
+            },
+            noteOff: function() {},
+            stop: function() {}
+        }
+    }
+
+    var INSTRUMENTS = [
+        makeInstrument(piano),
+        makeInstrument(flute),
+        makeInstrument(flute2),
+        makeInstrument(bass)
+    ];
+
+    function processNotes(events) {
+        var t1 = events.filter(function(evt, i) {
+            //if(i > 200) return false;
+            if(evt.type != EVENTS.NOTE) return false;
+            if(evt.subtype == EVENTS.NOTE_ON) {
+                //console.log("on  " +evt.param1 + " time: " + evt.playTime + " " + evt.delta +  " p2= " + evt.param2);
+                return true;
+            }
+            if(evt.subtype == EVENTS.NOTE_OFF) {
+                //console.log("off " + evt.param1 + " time: " + evt.playTime + " " + evt.delta);
+                return true;
+            }
+        });
+
+        function performEvent(evt) {
+            var ins = INSTRUMENTS[evt.channel];
+            if(evt.subtype == EVENTS.NOTE_ON)  ins.noteOn(evt.param1,evt.playTime);
+            if(evt.subtype == EVENTS.NOTE_OFF) ins.noteOff(evt.param1,evt.playTime);
+        }
+
+        var curr = 0;
+        var starttime = new Date().getTime();
+        function checkNext() {
+            setTimeout(function() {
+                var currtime = new Date().getTime();
+                var elapsed = currtime-starttime;
+                while(true) {
+                    if(curr >= t1.length) {
+                        //ins1.stop();
+                        return;
+                    }
+                    var evt = t1[curr];
+                    if(evt.playTime > elapsed*SPEED) {
+                        break;
+                    }
+                    performEvent(evt);
+                    curr++;
+                }
+                checkNext();
+            },5);
+        }
+        checkNext();
+
+    }
+
+    function setupAudio() {
+        window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        myAudioContext = new window.AudioContext();
+    }
+
+    function processMidi(buf) {
+        var midiFile= new MIDIFile(buf);
+        console.log(midiFile.header.getTracksCount() + " tracks"); // n
+        var events=midiFile.getMidiEvents();
+        processNotes(events);
+    }
+    function GETArrayBuffer(url, cb) {
+        var oReq = new XMLHttpRequest();
+        oReq.open("GET", url, true);
+        oReq.responseType = "arraybuffer";
+        oReq.onload = function (oEvent) {
+            var buf = oReq.response;
+            cb(buf);
+        };
+        oReq.send(null);
+    }
+
+    window.onload = function() {
+        GETArrayBuffer("carol_4part.mid",processMidi);
+    }
+</script>
+
+</body>
+</html>
