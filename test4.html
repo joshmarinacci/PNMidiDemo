@@ -5,6 +5,7 @@
     <title>Title</title>
 </head>
 <body>
+<button id="button">start</button>
 <script src="wad.js"></script>
 <script src="MIDIFile.js"></script>
 <script type="text/javascript">
@@ -197,7 +198,10 @@
     }
 
     window.onload = function() {
-        GETArrayBuffer("carol_4part.mid",processMidi);
+        document.getElementById("button").onclick = function() {
+            console.log("clicked");
+            GETArrayBuffer("carol_4part.mid",processMidi);
+        }
     }
 </script>
 
