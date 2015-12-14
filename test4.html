@@ -32,6 +32,7 @@
     setupAudio();
     var piano = new Wad({
         source : 'square',
+        volume: 0.5,
         env : {
             attack : .01,
             decay : .005,
@@ -52,6 +53,7 @@
 
     var flute = new Wad({
         source : 'square',
+        volume: 0.5,
         env : {
             attack : .015,
             decay : .002,
@@ -77,6 +79,7 @@
 
     var flute2 = new Wad({
         source : 'square',
+        volume: 0.5,
         env : {
             attack : .015,
             decay : .002,
@@ -102,6 +105,7 @@
 
     var bass = new Wad({
         source : 'sine',
+        volume: 0.5,
         env : {
             attack : .02,
             decay : .1,
@@ -200,6 +204,7 @@
     window.onload = function() {
         document.getElementById("button").onclick = function() {
             console.log("clicked");
+		piano.play();
             GETArrayBuffer("carol_4part.mid",processMidi);
         }
     }
